@@ -29,3 +29,13 @@ full port — this extension follows the same shape.
   from GitHub Packages — never a `path` repo.
 - **Extension routes are Layout-wrapped by the host** (`panelHost({ layout })`); the
   page renders only its `<section>`, never a full `<html>`.
+
+## Admin management view
+
+- **`/admin/projects`** (nav "Projekte verwalten") is the owner CRUD UI
+  (`islands/ProjectsAdmin.tsx` + `pages/AdminIndex.astro`), gated by the
+  **`projects:manage`** permission. No customer holds it, so only admins (who
+  bypass permission checks) see the nav/route — it's injected into both products
+  but effectively admin-only. It drives the module's `/admin/projects` +
+  `/admin/*/milestones` CRUD routes (all `isAdmin`-gated on the backend). The
+  customer `/projects` view stays read-only.

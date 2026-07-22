@@ -16,6 +16,7 @@ export default defineExtension({
   version: "0.1.0",
   permissions: [
     { id: "projects:read", label: "Projekte ansehen", group: "projects" },
+    { id: "projects:manage", label: "Projekte verwalten (Owner)", group: "projects" },
   ],
   nav: [
     {
@@ -26,6 +27,17 @@ export default defineExtension({
       group: "work",
       order: 10,
       permission: "projects:read",
+    },
+    {
+      // Admin-only: gated by projects:manage, which no customer holds — only
+      // admins (who bypass permission checks) see the owner management view.
+      id: "projects-admin",
+      label: "Projekte verwalten",
+      href: "/admin/projects",
+      icon: "folder-cog",
+      group: "verwaltung",
+      order: 10,
+      permission: "projects:manage",
     },
   ],
   widgets: [
@@ -44,6 +56,11 @@ export default defineExtension({
       pattern: "/projects",
       entrypoint: "@tracht-digital-solutions/tds-ext-projects/pages/Index.astro",
       permission: "projects:read",
+    },
+    {
+      pattern: "/admin/projects",
+      entrypoint: "@tracht-digital-solutions/tds-ext-projects/pages/AdminIndex.astro",
+      permission: "projects:manage",
     },
   ],
   i18n: {

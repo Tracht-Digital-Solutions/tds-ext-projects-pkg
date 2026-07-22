@@ -33,6 +33,7 @@ final class ProjectsModule extends AbstractModule
     {
         return [
             new PermissionDef('projects:read', 'Projekte ansehen', 'projects'),
+            new PermissionDef('projects:manage', 'Projekte verwalten (Owner)', 'projects'),
         ];
     }
 

@@ -97,7 +97,7 @@ final class ProjectsModuleTest extends TestCase
         $module = new ProjectsModule();
         self::assertSame('projects', $module->id());
         $ids = array_map(static fn ($p): string => $p->id, $module->permissions());
-        self::assertSame(['projects:read'], $ids);
+        self::assertSame(['projects:read', 'projects:manage'], $ids);
         self::assertDirectoryExists($module->migrations()[0]);
     }
 
