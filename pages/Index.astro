@@ -1,0 +1,11 @@
+---
+// Projects page, injected into the host build via the manifest's route slot.
+// Renders the customer's project list + milestone progress (read-only). Admin
+// project management lives behind /admin/projects (admin product target).
+import ProjectList from "../islands/ProjectList.tsx";
+---
+
+<section class="page page--projects">
+  <h1>Projekte</h1>
+  <ProjectList client:load />
+</section>

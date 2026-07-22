@@ -1,0 +1,11 @@
+---
+// "Aktive Projekte" dashboard widget shell (server component). Renders the card
+// chrome + a hydrated island that fetches /projects/summary. Rendered by the
+// Dashboard host via virtual:frontend-widgets.
+import ActiveProjectsCount from "../islands/WidgetBody.tsx";
+---
+
+<article class="widget widget--projects">
+  <h3>Aktive Projekte</h3>
+  <ActiveProjectsCount client:load />
+</article>
