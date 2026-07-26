@@ -98,10 +98,10 @@ export default function ProjectList() {
     }
   }
 
-  if (forbidden) return <p className="muted">Kein Zugriff auf Projekte.</p>;
-  if (error && projects === null) return <p className="error">{error}</p>;
+  if (forbidden) return <p className="marginalia">Kein Zugriff auf Projekte.</p>;
+  if (error && projects === null) return <p className="tds-alert tds-alert--danger" role="alert">{error}</p>;
   if (projects === null) return <p role="status"><Spinner /></p>;
-  if (projects.length === 0) return <p className="muted">Noch keine Projekte.</p>;
+  if (projects.length === 0) return <p className="marginalia">Noch keine Projekte.</p>;
 
   // Each project is a card. The old `project-card project-card--${p.status}`
   // matched no rule and nothing referenced the modifier, so it is dropped in
@@ -112,12 +112,12 @@ export default function ProjectList() {
     <ul className="project-list">
       {projects.map((p) => (
         <li key={p.id} className="tds-card">
-          <button type="button" className="project-card__head" onClick={() => toggle(p.id)} aria-expanded={openId === p.id}>
+          <button type="button" className="tds-row tds-row--between" onClick={() => toggle(p.id)} aria-expanded={openId === p.id}>
             <span className="project-card__title">{p.title}</span>
             <span className={`chip ${STATUS_CHIP[p.status] ?? "chip--neutral"}`}>{STATUS_LABEL[p.status] ?? p.status}</span>
           </button>
           {openId === p.id && (
-            <div className="project-card__detail">
+            <div className="tds-stack">
               {p.description && <p className="project-card__desc">{p.description}</p>}
               <dl className="project-card__dates">
                 <div><dt>Start</dt><dd>{fmtDate(p.start_date)}</dd></div>
@@ -127,7 +127,7 @@ export default function ProjectList() {
               {loadingDetail ? (
                 <p role="status"><Spinner /></p>
               ) : milestones.length === 0 ? (
-                <p className="muted">Keine Meilensteine.</p>
+                <p className="marginalia">Keine Meilensteine.</p>
               ) : (
                 <ol className="tds-list">
                   {milestones.map((m) => (

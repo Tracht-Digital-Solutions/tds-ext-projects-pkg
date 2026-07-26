@@ -125,14 +125,14 @@ export default function ProjectsAdmin() {
     await load();
   }
 
-  if (error && projects === null) return <p className="error">{error}</p>;
+  if (error && projects === null) return <p className="tds-alert tds-alert--danger" role="alert">{error}</p>;
   if (projects === null) return <p role="status"><Spinner /></p>;
 
   return (
     <div className="projects-admin">
-      {error && <p className="error">{error}</p>}
+      {error && <p className="tds-alert tds-alert--danger" role="alert">{error}</p>}
 
-      <form className="projects-admin__form tds-card" onSubmit={saveProject}>
+      <form className="tds-stack tds-card" onSubmit={saveProject}>
         <h3>{editingId ? `Projekt #${editingId} bearbeiten` : "Neues Projekt"}</h3>
         <div className="grid">
           <label>Titel<input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} maxLength={200} required /></label>
@@ -146,22 +146,22 @@ export default function ProjectsAdmin() {
           <label>Ziel<input type="date" value={form.target_date} onChange={(e) => setForm({ ...form, target_date: e.target.value })} /></label>
         </div>
         <label>Beschreibung<textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} /></label>
-        <div className="projects-admin__actions">
+        <div className="tds-toolbar">
           <button type="submit" disabled={busy}>{editingId ? "Speichern" : "Anlegen"}</button>
           {editingId && <button type="button" onClick={() => { setEditingId(null); setForm(emptyProject()); }}>Abbrechen</button>}
         </div>
       </form>
 
       {projects.length === 0 ? (
-        <p className="muted">Noch keine Projekte.</p>
+        <p className="marginalia">Noch keine Projekte.</p>
       ) : (
-        <ul className="projects-admin__list">
+        <ul className="tds-list">
           {projects.map((p) => (
             <li key={p.id} className="tds-card">
               <header>
                 <strong>{p.title}</strong>
                 <span className={`chip ${P_CHIP[p.status] ?? "chip--neutral"}`}>{P_LABEL[p.status] ?? p.status}</span>
-                <span className="muted">Kunde #{p.customer_id}</span>
+                <span className="marginalia">Kunde #{p.customer_id}</span>
                 <span className="spacer" />
                 <button type="button" onClick={() => editProject(p)}>Bearbeiten</button>
                 <button type="button" className="btn btn-danger" onClick={() => deleteProject(p.id)}>Löschen</button>
