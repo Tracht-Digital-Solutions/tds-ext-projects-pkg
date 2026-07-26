@@ -32,6 +32,23 @@ const M_STATUS_LABEL: Record<string, string> = {
   completed: "Erledigt",
 };
 
+// Status -> shared chip variant. Mapped EXPLICITLY, not interpolated: the old
+// code wrote `badge badge--${status}`, and neither `.badge` nor any `badge--*`
+// rule exists anywhere, so every status label rendered unstyled. Kept in sync
+// with the identical maps in ProjectsAdmin.tsx.
+const STATUS_CHIP: Record<string, string> = {
+  discovery: "chip--info",
+  in_progress: "chip--warning",
+  review: "chip--cat-violet",
+  delivered: "chip--success",
+  on_hold: "chip--neutral",
+};
+const M_STATUS_CHIP: Record<string, string> = {
+  pending: "chip--neutral",
+  in_progress: "chip--warning",
+  completed: "chip--success",
+};
+
 const api = (path: string, init?: RequestInit) => fetch(path, { credentials: "include", ...init });
 const fmtDate = (iso: string | null) =>
   iso ? new Date(iso).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
@@ -86,13 +103,18 @@ export default function ProjectList() {
   if (projects === null) return <p role="status"><Spinner /></p>;
   if (projects.length === 0) return <p className="muted">Noch keine Projekte.</p>;
 
+  // Each project is a card. The old `project-card project-card--${p.status}`
+  // matched no rule and nothing referenced the modifier, so it is dropped in
+  // favour of the shared `.tds-card` surface (whose radius follows the surface
+  // layer). Note: a JSX comment cannot go inside the .map() return position —
+  // it is an expression, not JSX children.
   return (
     <ul className="project-list">
       {projects.map((p) => (
-        <li key={p.id} className={`project-card project-card--${p.status}`}>
+        <li key={p.id} className="tds-card">
           <button type="button" className="project-card__head" onClick={() => toggle(p.id)} aria-expanded={openId === p.id}>
             <span className="project-card__title">{p.title}</span>
-            <span className={`badge badge--${p.status}`}>{STATUS_LABEL[p.status] ?? p.status}</span>
+            <span className={`chip ${STATUS_CHIP[p.status] ?? "chip--neutral"}`}>{STATUS_LABEL[p.status] ?? p.status}</span>
           </button>
           {openId === p.id && (
             <div className="project-card__detail">
@@ -107,11 +129,11 @@ export default function ProjectList() {
               ) : milestones.length === 0 ? (
                 <p className="muted">Keine Meilensteine.</p>
               ) : (
-                <ol className="milestone-list">
+                <ol className="tds-list">
                   {milestones.map((m) => (
-                    <li key={m.id} className={`milestone milestone--${m.status}`}>
+                    <li key={m.id} className="tds-list__row">
                       <span className="milestone__title">{m.title}</span>
-                      <span className={`badge badge--${m.status}`}>{M_STATUS_LABEL[m.status] ?? m.status}</span>
+                      <span className={`chip ${M_STATUS_CHIP[m.status] ?? "chip--neutral"}`}>{M_STATUS_LABEL[m.status] ?? m.status}</span>
                       <time>{fmtDate(m.due_date)}</time>
                     </li>
                   ))}

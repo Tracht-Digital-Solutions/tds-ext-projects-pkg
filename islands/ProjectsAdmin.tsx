@@ -23,6 +23,23 @@ const M_STATUS = ["pending", "in_progress", "completed"] as const;
 const P_LABEL: Record<string, string> = { discovery: "Analyse", in_progress: "In Arbeit", review: "Abnahme", delivered: "Abgeschlossen", on_hold: "Pausiert" };
 const M_LABEL: Record<string, string> = { pending: "Offen", in_progress: "In Arbeit", completed: "Erledigt" };
 
+// Status -> shared chip variant. Mapped EXPLICITLY rather than interpolated:
+// the old code wrote `badge badge--${status}`, and neither `.badge` nor any
+// `badge--*` rule exists anywhere, so every one of these labels rendered
+// unstyled. Tailwind also cannot extract an interpolated class name.
+const P_CHIP: Record<string, string> = {
+  discovery: "chip--info",
+  in_progress: "chip--warning",
+  review: "chip--cat-violet",
+  delivered: "chip--success",
+  on_hold: "chip--neutral",
+};
+const M_CHIP: Record<string, string> = {
+  pending: "chip--neutral",
+  in_progress: "chip--warning",
+  completed: "chip--success",
+};
+
 const api = (path: string, init?: RequestInit) =>
   fetch(path, { credentials: "include", headers: { "Content-Type": "application/json" }, ...init });
 
@@ -115,7 +132,7 @@ export default function ProjectsAdmin() {
     <div className="projects-admin">
       {error && <p className="error">{error}</p>}
 
-      <form className="projects-admin__form card" onSubmit={saveProject}>
+      <form className="projects-admin__form tds-card" onSubmit={saveProject}>
         <h3>{editingId ? `Projekt #${editingId} bearbeiten` : "Neues Projekt"}</h3>
         <div className="grid">
           <label>Titel<input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} maxLength={200} required /></label>
@@ -140,10 +157,10 @@ export default function ProjectsAdmin() {
       ) : (
         <ul className="projects-admin__list">
           {projects.map((p) => (
-            <li key={p.id} className="projects-admin__item card">
+            <li key={p.id} className="tds-card">
               <header>
                 <strong>{p.title}</strong>
-                <span className={`badge badge--${p.status}`}>{P_LABEL[p.status] ?? p.status}</span>
+                <span className={`chip ${P_CHIP[p.status] ?? "chip--neutral"}`}>{P_LABEL[p.status] ?? p.status}</span>
                 <span className="muted">Kunde #{p.customer_id}</span>
                 <span className="spacer" />
                 <button type="button" onClick={() => editProject(p)}>Bearbeiten</button>
@@ -153,7 +170,7 @@ export default function ProjectsAdmin() {
                 <ol>
                   {(p.milestones ?? []).map((m) => (
                     <li key={m.id}>
-                      <button type="button" className={`badge badge--${m.status}`} onClick={() => cycleMilestone(m)} title="Status wechseln">{M_LABEL[m.status]}</button>
+                      <button type="button" className={`chip ${M_CHIP[m.status] ?? "chip--neutral"}`} onClick={() => cycleMilestone(m)} title="Status wechseln">{M_LABEL[m.status]}</button>
                       <span>{m.title}</span>
                       <button type="button" className="link-danger" onClick={() => deleteMilestone(m.id)}>×</button>
                     </li>
