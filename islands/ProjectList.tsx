@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Spinner } from "@tracht-digital-solutions/tds-shared/components";
 
 interface Project {
   id: number;
@@ -82,7 +83,7 @@ export default function ProjectList() {
 
   if (forbidden) return <p className="muted">Kein Zugriff auf Projekte.</p>;
   if (error && projects === null) return <p className="error">{error}</p>;
-  if (projects === null) return <p className="muted">Wird geladen …</p>;
+  if (projects === null) return <p role="status"><Spinner /></p>;
   if (projects.length === 0) return <p className="muted">Noch keine Projekte.</p>;
 
   return (
@@ -102,7 +103,7 @@ export default function ProjectList() {
               </dl>
               <h4>Meilensteine</h4>
               {loadingDetail ? (
-                <p className="muted">Wird geladen …</p>
+                <p role="status"><Spinner /></p>
               ) : milestones.length === 0 ? (
                 <p className="muted">Keine Meilensteine.</p>
               ) : (

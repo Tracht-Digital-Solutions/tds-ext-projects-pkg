@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Spinner } from "@tracht-digital-solutions/tds-shared/components";
 
 interface Milestone {
   id: number;
@@ -108,7 +109,7 @@ export default function ProjectsAdmin() {
   }
 
   if (error && projects === null) return <p className="error">{error}</p>;
-  if (projects === null) return <p className="muted">Wird geladen …</p>;
+  if (projects === null) return <p role="status"><Spinner /></p>;
 
   return (
     <div className="projects-admin">
@@ -146,7 +147,7 @@ export default function ProjectsAdmin() {
                 <span className="muted">Kunde #{p.customer_id}</span>
                 <span className="spacer" />
                 <button type="button" onClick={() => editProject(p)}>Bearbeiten</button>
-                <button type="button" className="danger" onClick={() => deleteProject(p.id)}>Löschen</button>
+                <button type="button" className="btn btn-danger" onClick={() => deleteProject(p.id)}>Löschen</button>
               </header>
               <div className="projects-admin__milestones">
                 <ol>

@@ -16,5 +16,5 @@ export default function ActiveProjectsCount() {
       alive = false;
     };
   }, []);
-  return <p className="widget__metric">{active === null ? "…" : active}</p>;
+  return <p className="tds-widget__metric">{active === null ? "…" : active}</p>;
 }
