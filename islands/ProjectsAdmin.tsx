@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Spinner } from "@tracht-digital-solutions/tds-shared/components";
+import { ConfirmDialog, Spinner } from "@tracht-digital-solutions/tds-shared/components";
 
 interface Milestone {
   id: number;
@@ -58,6 +58,9 @@ export default function ProjectsAdmin() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [msDraft, setMsDraft] = useState<Record<number, string>>({});
+  const [pendingDelete, setPendingDelete] = useState<Project | null>(null);
+  const [pendingMilestone, setPendingMilestone] = useState<Milestone | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = () =>
     api("/admin/projects")
@@ -100,10 +103,17 @@ export default function ProjectsAdmin() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  async function deleteProject(id: number) {
-    if (!window.confirm("Projekt wirklich löschen? Meilensteine werden mitgelöscht.")) return;
-    await api(`/admin/projects/${id}`, { method: "DELETE" });
-    await load();
+  async function confirmDeleteProject() {
+    const p = pendingDelete;
+    if (!p) return;
+    setDeleting(true);
+    try {
+      await api(`/admin/projects/${p.id}`, { method: "DELETE" });
+      setPendingDelete(null);
+      await load();
+    } finally {
+      setDeleting(false);
+    }
   }
 
   async function addMilestone(projectId: number) {
@@ -120,9 +130,19 @@ export default function ProjectsAdmin() {
     await load();
   }
 
-  async function deleteMilestone(id: number) {
-    await api(`/admin/milestones/${id}`, { method: "DELETE" });
-    await load();
+  // The trigger is a bare „×" beside the milestone title — precisely the control
+  // a misclick lands on — so it is gated too, not just the big Löschen button.
+  async function confirmDeleteMilestone() {
+    const m = pendingMilestone;
+    if (!m) return;
+    setDeleting(true);
+    try {
+      await api(`/admin/milestones/${m.id}`, { method: "DELETE" });
+      setPendingMilestone(null);
+      await load();
+    } finally {
+      setDeleting(false);
+    }
   }
 
   if (error && projects === null) return <p className="tds-alert tds-alert--danger" role="alert">{error}</p>;
@@ -164,7 +184,7 @@ export default function ProjectsAdmin() {
                 <span className="marginalia">Kunde #{p.customer_id}</span>
                 <span className="spacer" />
                 <button type="button" onClick={() => editProject(p)}>Bearbeiten</button>
-                <button type="button" className="btn btn-danger" onClick={() => deleteProject(p.id)}>Löschen</button>
+                <button type="button" className="btn btn-danger" onClick={() => setPendingDelete(p)}>Löschen</button>
               </header>
               <div className="projects-admin__milestones">
                 <ol>
@@ -172,7 +192,7 @@ export default function ProjectsAdmin() {
                     <li key={m.id}>
                       <button type="button" className={`chip ${M_CHIP[m.status] ?? "chip--neutral"}`} onClick={() => cycleMilestone(m)} title="Status wechseln">{M_LABEL[m.status]}</button>
                       <span>{m.title}</span>
-                      <button type="button" className="link-danger" onClick={() => deleteMilestone(m.id)}>×</button>
+                      <button type="button" className="link-danger" onClick={() => setPendingMilestone(m)}>×</button>
                     </li>
                   ))}
                 </ol>
@@ -190,6 +210,23 @@ export default function ProjectsAdmin() {
           ))}
         </ul>
       )}
+
+      <ConfirmDialog
+        open={pendingMilestone !== null}
+        title={`Meilenstein „${pendingMilestone?.title ?? ""}“ löschen?`}
+        busy={deleting}
+        onConfirm={() => void confirmDeleteMilestone()}
+        onCancel={() => setPendingMilestone(null)}
+      />
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title={`Projekt „${pendingDelete?.title ?? ""}“ löschen?`}
+        message="Alle Meilensteine des Projekts werden mitgelöscht."
+        busy={deleting}
+        onConfirm={() => void confirmDeleteProject()}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }
