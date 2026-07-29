@@ -39,3 +39,48 @@ full port — this extension follows the same shape.
   but effectively admin-only. It drives the module's `/admin/projects` +
   `/admin/*/milestones` CRUD routes (all `isAdmin`-gated on the backend). The
   customer `/projects` view stays read-only.
+
+## Tests (frontend)
+
+```bash
+npm run test:run    # vitest, 127 tests (jsdom per-file via a @vitest-environment docblock)
+```
+
+- `islands/ProjectsAdmin.test.tsx` — the owner surface. Three things get the
+  sharpest assertions:
+  - **deleting a project is gated behind `window.confirm`** and cascades to its
+    milestones. Declining must send NOTHING — the only guard in front of an
+    irreversible multi-row delete.
+  - **an edit PATCHes; only a create POSTs.** A POST while editing duplicates
+    the project instead of updating it.
+  - **`customer_id` is locked once the project exists.** Re-homing a project
+    would move its milestones out from under the customer who can see them.
+  The milestone status **cycle** is pinned in all three steps *including the
+  wrap* from `completed` back to `pending` — that wrap is the only way to
+  correct a milestone marked done by mistake — and the PATCH is asserted to
+  carry the title and due date through, since it replaces the row.
+- `islands/ProjectList.test.tsx` — the read-only portal view. The accordion has
+  to be honest: the detail belongs to the project that was opened (a stale
+  milestone list would show one project's plan under another's heading), only
+  one card is expanded at a time, and a failed detail request renders an EMPTY
+  timeline rather than the previous project's.
+- `islands/WidgetBody.test.tsx` — the active-project tile.
+- `src/index.test.ts` + `tests/packaging.test.ts` — the manifest as a product
+  build sees it. This extension has **two gating levels**, and the test asserts
+  the split in both directions: `/admin/projects` (route AND nav entry) requires
+  `projects:manage`, the portal surface `projects:read`. Checking only the route
+  is not enough — a nav entry gated on `read` puts the owner link in a
+  customer's sidebar even when the page itself is protected.
+
+Error-path tests deliberately answer with a POPULATED body and a non-OK status.
+Against an EMPTY error body the ok-check is unobservable.
+
+Verified by mutation: 64 deliberate breakages introduced, **62 caught**. The two
+survivors are equivalent mutants, kept as defence in depth:
+
+1. dropping the JS "customer is required" guard — the input carries HTML
+   `required` while creating, so the browser blocks the submit first (the
+   attribute itself is asserted instead);
+2. dropping `e.preventDefault()` in the milestone input's Enter handler — that
+   input lives **outside** the project `<form>` (which closes before the list),
+   so Enter cannot submit the form either way.
