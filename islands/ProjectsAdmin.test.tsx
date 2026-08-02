@@ -93,7 +93,7 @@ describe("loading", () => {
 
   it("shows a loading line until the list arrives", () => {
     render(<ProjectsAdmin />);
-    expect(screen.getByText("Wird geladen …")).toBeTruthy();
+    expect(screen.getByLabelText("Wird geladen")).toBeTruthy();
   });
 
   it("says so when nothing exists yet", async () => {

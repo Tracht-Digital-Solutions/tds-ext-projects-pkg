@@ -113,7 +113,7 @@ describe("loading", () => {
 
   it("shows a loading line until the list arrives", () => {
     render(<ProjectList />);
-    expect(screen.getByText("Wird geladen …")).toBeTruthy();
+    expect(screen.getByLabelText("Wird geladen")).toBeTruthy();
   });
 
   it("says so when the company has no projects", async () => {
@@ -275,7 +275,7 @@ describe("opening a project", () => {
     respond(/^\/projects\/7$/, { milestones: [MILESTONE] }, 200, "GET");
     const u = await open([PROJECT]);
     await u.click(await screen.findByRole("button", { name: /Website-Relaunch/ }));
-    expect(await screen.findByText("Wird geladen …")).toBeTruthy();
+    expect(await screen.findByLabelText("Wird geladen")).toBeTruthy();
     release();
     expect(await screen.findByText("Konzept")).toBeTruthy();
   });

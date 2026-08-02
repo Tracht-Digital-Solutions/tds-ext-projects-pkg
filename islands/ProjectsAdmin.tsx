@@ -146,7 +146,7 @@ export default function ProjectsAdmin() {
   }
 
   if (error && projects === null) return <p className="tds-alert tds-alert--danger" role="alert">{error}</p>;
-  if (projects === null) return <p role="status"><Spinner /></p>;
+  if (projects === null) return <p><Spinner /></p>;
 
   return (
     <div className="projects-admin">

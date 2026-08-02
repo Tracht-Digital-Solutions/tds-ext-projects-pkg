@@ -100,7 +100,7 @@ export default function ProjectList() {
 
   if (forbidden) return <p className="marginalia">Kein Zugriff auf Projekte.</p>;
   if (error && projects === null) return <p className="tds-alert tds-alert--danger" role="alert">{error}</p>;
-  if (projects === null) return <p role="status"><Spinner /></p>;
+  if (projects === null) return <p><Spinner /></p>;
   if (projects.length === 0) return <p className="marginalia">Noch keine Projekte.</p>;
 
   // Each project is a card. The old `project-card project-card--${p.status}`
@@ -125,7 +125,7 @@ export default function ProjectList() {
               </dl>
               <h4>Meilensteine</h4>
               {loadingDetail ? (
-                <p role="status"><Spinner /></p>
+                <p><Spinner /></p>
               ) : milestones.length === 0 ? (
                 <p className="marginalia">Keine Meilensteine.</p>
               ) : (

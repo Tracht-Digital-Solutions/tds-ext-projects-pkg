@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Skeleton } from "@tracht-digital-solutions/tds-shared/components";
 
 /**
  * "Aktive Projekte" widget body. Fetches the active-project count from the
@@ -16,5 +17,7 @@ export default function ActiveProjectsCount() {
       alive = false;
     };
   }, []);
-  return <p className="tds-widget__metric">{active === null ? "…" : active}</p>;
+  return <p className="tds-widget__metric" aria-busy={active === null}>
+      {active === null ? <Skeleton width="3ch" height="1.75rem" /> : active}
+    </p>;
 }
