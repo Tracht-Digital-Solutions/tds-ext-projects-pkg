@@ -149,31 +149,31 @@ export default function ProjectsAdmin() {
   if (projects === null) return <p><Spinner /></p>;
 
   return (
-    <div className="projects-admin">
+    <div className="tds-stack">
       {error && <p className="tds-alert tds-alert--danger" role="alert">{error}</p>}
 
       <form className="tds-stack tds-card" onSubmit={saveProject}>
         <h3>{editingId ? `Projekt #${editingId} bearbeiten` : "Neues Projekt"}</h3>
         <div className="grid">
-          <label>Titel<input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} maxLength={200} required /></label>
-          <label>Kunde (customer_id)<input type="number" value={form.customer_id} onChange={(e) => setForm({ ...form, customer_id: e.target.value })} disabled={editingId !== null} required={!editingId} /></label>
-          <label>Status
-            <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+          <label className="tds-field-row">Titel<input className="field-boxed" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} maxLength={200} required /></label>
+          <label className="tds-field-row">Kunde (customer_id)<input className="field-boxed" type="number" value={form.customer_id} onChange={(e) => setForm({ ...form, customer_id: e.target.value })} disabled={editingId !== null} required={!editingId} /></label>
+          <label className="tds-field-row">Status
+            <select className="field-boxed" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
               {P_STATUS.map((s) => <option key={s} value={s}>{P_LABEL[s]}</option>)}
             </select>
           </label>
-          <label>Start<input type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></label>
-          <label>Ziel<input type="date" value={form.target_date} onChange={(e) => setForm({ ...form, target_date: e.target.value })} /></label>
+          <label className="tds-field-row">Start<input className="field-boxed" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></label>
+          <label className="tds-field-row">Ziel<input className="field-boxed" type="date" value={form.target_date} onChange={(e) => setForm({ ...form, target_date: e.target.value })} /></label>
         </div>
-        <label>Beschreibung<textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} /></label>
+        <label className="tds-field-row">Beschreibung<textarea className="field-boxed" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} /></label>
         <div className="tds-toolbar">
-          <button type="submit" disabled={busy}>{editingId ? "Speichern" : "Anlegen"}</button>
-          {editingId && <button type="button" onClick={() => { setEditingId(null); setForm(emptyProject()); }}>Abbrechen</button>}
+          <button type="submit" className="btn btn-primary" disabled={busy} aria-busy={busy}>{editingId ? "Speichern" : "Anlegen"}</button>
+          {editingId && <button type="button" className="btn btn-ghost" onClick={() => { setEditingId(null); setForm(emptyProject()); }}>Abbrechen</button>}
         </div>
       </form>
 
       {projects.length === 0 ? (
-        <p className="marginalia">Noch keine Projekte.</p>
+        <p className="tds-empty">Noch keine Projekte.</p>
       ) : (
         <ul className="tds-list">
           {projects.map((p) => (
@@ -183,27 +183,29 @@ export default function ProjectsAdmin() {
                 <span className={`chip ${P_CHIP[p.status] ?? "chip--neutral"}`}>{P_LABEL[p.status] ?? p.status}</span>
                 <span className="marginalia">Kunde #{p.customer_id}</span>
                 <span className="spacer" />
-                <button type="button" onClick={() => editProject(p)}>Bearbeiten</button>
+                <button type="button" className="btn btn-ghost" onClick={() => editProject(p)}>Bearbeiten</button>
                 <button type="button" className="btn btn-danger" onClick={() => setPendingDelete(p)}>Löschen</button>
               </header>
-              <div className="projects-admin__milestones">
+              <div className="tds-stack">
                 <ol>
                   {(p.milestones ?? []).map((m) => (
                     <li key={m.id}>
                       <button type="button" className={`chip ${M_CHIP[m.status] ?? "chip--neutral"}`} onClick={() => cycleMilestone(m)} title="Status wechseln">{M_LABEL[m.status]}</button>
                       <span>{m.title}</span>
-                      <button type="button" className="link-danger" onClick={() => setPendingMilestone(m)}>×</button>
+                      <button type="button" className="btn btn-danger" onClick={() => setPendingMilestone(m)} aria-label="Meilenstein löschen">×</button>
                     </li>
                   ))}
                 </ol>
-                <div className="projects-admin__ms-add">
+                <div className="tds-toolbar">
                   <input
+                    className="field-boxed"
+                    aria-label="Neuer Meilenstein"
                     value={msDraft[p.id] ?? ""}
                     onChange={(e) => setMsDraft((d) => ({ ...d, [p.id]: e.target.value }))}
                     placeholder="Meilenstein hinzufügen …"
                     onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void addMilestone(p.id); } }}
                   />
-                  <button type="button" onClick={() => addMilestone(p.id)}>+</button>
+                  <button type="button" className="btn btn-primary" onClick={() => addMilestone(p.id)} aria-label="Meilenstein hinzufügen">+</button>
                 </div>
               </div>
             </li>

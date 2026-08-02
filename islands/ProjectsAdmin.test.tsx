@@ -405,7 +405,7 @@ describe("milestones", () => {
     const u = await open([PROJECT, { ...PROJECT, id: 9, title: "Shop", milestones: [] }]);
     const inputs = screen.getAllByPlaceholderText("Meilenstein hinzufügen …");
     await u.type(inputs[1]!, "Kickoff");
-    await u.click(within(item("Shop")).getByRole("button", { name: "+" }));
+    await u.click(within(item("Shop")).getByRole("button", { name: "Meilenstein hinzufügen" }));
     await waitFor(() => expect(sent("POST", /^\/admin\/projects\/9\/milestones$/)).toHaveLength(1));
     expect(sent("POST", /^\/admin\/projects\/9\/milestones$/)[0]!.body).toEqual({ title: "Kickoff" });
     expect(sent("POST", /^\/admin\/projects\/7\/milestones$/)).toHaveLength(0);
@@ -414,21 +414,21 @@ describe("milestones", () => {
   it("trims the milestone title", async () => {
     const u = await open([PROJECT]);
     await u.type(msInput(), "  Kickoff  ");
-    await u.click(screen.getByRole("button", { name: "+" }));
+    await u.click(screen.getByRole("button", { name: "Meilenstein hinzufügen" }));
     await waitFor(() => expect(sent("POST", /milestones$/)).toHaveLength(1));
     expect(sent("POST", /milestones$/)[0]!.body).toEqual({ title: "Kickoff" });
   });
 
   it("refuses an empty milestone", async () => {
     const u = await open([PROJECT]);
-    await u.click(screen.getByRole("button", { name: "+" }));
+    await u.click(screen.getByRole("button", { name: "Meilenstein hinzufügen" }));
     expect(sent("POST", /milestones$/)).toHaveLength(0);
   });
 
   it("refuses a whitespace-only milestone", async () => {
     const u = await open([PROJECT]);
     await u.type(msInput(), "   ");
-    await u.click(screen.getByRole("button", { name: "+" }));
+    await u.click(screen.getByRole("button", { name: "Meilenstein hinzufügen" }));
     expect(sent("POST", /milestones$/)).toHaveLength(0);
   });
 
@@ -449,7 +449,7 @@ describe("milestones", () => {
     const inputs = screen.getAllByPlaceholderText("Meilenstein hinzufügen …");
     await u.type(inputs[0]!, "Kickoff");
     await u.type(inputs[1]!, "Später");
-    await u.click(within(item("Website-Relaunch")).getByRole("button", { name: "+" }));
+    await u.click(within(item("Website-Relaunch")).getByRole("button", { name: "Meilenstein hinzufügen" }));
     await waitFor(() => expect(sent("POST", /milestones$/)).toHaveLength(1));
     const after = screen.getAllByPlaceholderText("Meilenstein hinzufügen …");
     expect((after[0]! as HTMLInputElement).value).toBe("");
@@ -459,7 +459,7 @@ describe("milestones", () => {
   it("reloads the list after adding a milestone", async () => {
     const u = await open([PROJECT]);
     await u.type(msInput(), "Kickoff");
-    await u.click(screen.getByRole("button", { name: "+" }));
+    await u.click(screen.getByRole("button", { name: "Meilenstein hinzufügen" }));
     await waitFor(() => expect(sent("GET", /^\/admin\/projects$/)).toHaveLength(2));
   });
 
@@ -529,14 +529,14 @@ describe("milestones", () => {
     const second = screen
       .getAllByRole("listitem")
       .find((li) => li.parentElement?.tagName === "OL" && li.textContent!.includes("Abnahme"))!;
-    await u.click(within(second).getByRole("button", { name: "×" }));
+    await u.click(within(second).getByRole("button", { name: "Meilenstein löschen" }));
     await waitFor(() => expect(sent("DELETE", /^\/admin\/milestones\/12$/)).toHaveLength(1));
     expect(sent("DELETE", /^\/admin\/milestones\/11$/)).toHaveLength(0);
   });
 
   it("reloads the list after deleting a milestone", async () => {
     const u = await open([PROJECT]);
-    await u.click(screen.getByRole("button", { name: "×" }));
+    await u.click(screen.getByRole("button", { name: "Meilenstein löschen" }));
     await waitFor(() => expect(sent("GET", /^\/admin\/projects$/)).toHaveLength(2));
   });
 });

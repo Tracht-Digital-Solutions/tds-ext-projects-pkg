@@ -112,7 +112,7 @@ export default function ProjectList() {
     <ul className="project-list">
       {projects.map((p) => (
         <li key={p.id} className="tds-card">
-          <button type="button" className="tds-row tds-row--between" onClick={() => toggle(p.id)} aria-expanded={openId === p.id}>
+          <button type="button" className="btn btn-ghost tds-row tds-row--between" onClick={() => toggle(p.id)} aria-expanded={openId === p.id}>
             <span className="project-card__title">{p.title}</span>
             <span className={`chip ${STATUS_CHIP[p.status] ?? "chip--neutral"}`}>{STATUS_LABEL[p.status] ?? p.status}</span>
           </button>
