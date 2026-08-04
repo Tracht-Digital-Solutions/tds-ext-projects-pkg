@@ -98,10 +98,14 @@ const card = (title: string) => screen.getAllByRole("listitem").find((li) => li.
  * contains every milestone AND its own status badge, so an unscoped lookup
  * matches the wrong element (and "In Arbeit" appears on both levels).
  */
+// The milestone <ol> carries the shared `.tds-list` class; it was
+// `.milestone-list` until the design library absorbed the bespoke list names,
+// and this helper kept looking for the old one — so it returned `undefined`
+// and the three tests below failed with "Expected container to be an Element".
 const milestone = (title: string) =>
   screen
     .getAllByRole("listitem")
-    .find((li) => li.parentElement?.classList.contains("milestone-list") && li.textContent!.includes(title))!;
+    .find((li) => li.parentElement?.classList.contains("tds-list") && li.textContent!.includes(title))!;
 
 describe("loading", () => {
   it("reads the company's projects with credentials", async () => {
@@ -342,9 +346,14 @@ describe("the milestone timeline", () => {
     expect(within(milestone("Abnahme")).getByText("Erledigt")).toBeTruthy();
   });
 
-  it("carries the status into the row class", async () => {
+  it("carries the status into the chip variant", async () => {
+    // The status used to colour the ROW (`milestone--completed`); the design
+    // library moved it onto a shared `.chip--*`, and this assertion was left
+    // pointing at a class that no longer exists — i.e. it was asserting
+    // nothing, on the one element whose colour IS the information.
     await openDetail([{ ...MILESTONE, status: "completed" }]);
-    expect(milestone("Konzept").className).toContain("milestone--completed");
+    const chip = within(milestone("Konzept")).getByText("Erledigt");
+    expect(chip.className).toContain("chip--success");
   });
 
   it("falls back to the raw status for one it does not know", async () => {
