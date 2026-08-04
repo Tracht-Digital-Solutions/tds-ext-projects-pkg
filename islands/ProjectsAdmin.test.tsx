@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ProjectsAdmin from "./ProjectsAdmin";
+import { TOAST_EVENT } from "@tracht-digital-solutions/tds-shared/toast";
 
 /**
  * Owner project management (admin-only).
@@ -48,8 +49,16 @@ const PROJECT = {
   milestones: [MILESTONE],
 };
 
+/** Mutation outcomes are toasts now — collected off the `tds:toast` bus. */
+let toasts: Array<{ variant: string; message: string }> = [];
+const collectToast = (e: Event) => {
+  toasts.push((e as CustomEvent<{ variant: string; message: string }>).detail);
+};
+
 beforeEach(() => {
   calls = [];
+  toasts = [];
+  window.addEventListener(TOAST_EVENT, collectToast);
   confirmAnswer = true;
   handlers = [() => ({ status: 200, body: {} })];
   respond(/^\/admin\/projects$/, { projects: [] });
@@ -66,7 +75,10 @@ beforeEach(() => {
   );
 });
 
-afterEach(() => cleanup());
+afterEach(() => {
+  window.removeEventListener(TOAST_EVENT, collectToast);
+  cleanup();
+});
 
 const user = () => userEvent.setup({ delay: null });
 const sent = (method: string, match: RegExp) => calls.filter((c) => c.method === method && match.test(c.url));
@@ -238,7 +250,8 @@ describe("creating a project", () => {
     await u.type(field("Titel"), "Website-Relaunch");
     await u.type(field("Kunde (customer_id)"), "3");
     await u.click(screen.getByRole("button", { name: "Anlegen" }));
-    expect(await screen.findByText("Speichern fehlgeschlagen.")).toBeTruthy();
+    await waitFor(() => expect(toasts.length).toBe(1));
+    expect(toasts[0].variant).toBe("danger");
     expect(field("Titel").value).toBe("Website-Relaunch");
   });
 
@@ -248,7 +261,7 @@ describe("creating a project", () => {
     await u.type(field("Titel"), "Website-Relaunch");
     await u.type(field("Kunde (customer_id)"), "3");
     await u.click(screen.getByRole("button", { name: "Anlegen" }));
-    await screen.findByText("Speichern fehlgeschlagen.");
+    await waitFor(() => expect(toasts.length).toBe(1));
     expect(sent("GET", /^\/admin\/projects$/)).toHaveLength(1);
   });
 
@@ -357,33 +370,59 @@ describe("editing a project", () => {
 });
 
 describe("deleting a project", () => {
+  // Deletion moved from window.confirm() to the shared <ConfirmDialog> (a
+  // native <dialog>) and these tests were never migrated with it: they assert a
+  // confirm() that is no longer called and a DELETE that the row button alone
+  // no longer fires, so all four had been failing. The guard they exist for is
+  // unchanged — nothing is sent until the dialog is confirmed.
+  const dialogButton = (name: RegExp) => screen.getAllByRole("button", { name }).at(-1)!;
+
+  async function pressDelete(u: ReturnType<typeof user>, project: string) {
+    await u.click(within(item(project)).getByRole("button", { name: "Löschen" }));
+    await screen.findByText(/löschen\?$/);
+  }
+
   it("ASKS before deleting, and mentions the milestone cascade", async () => {
     const u = await open([PROJECT]);
-    await u.click(within(item("Website-Relaunch")).getByRole("button", { name: "Löschen" }));
-    await waitFor(() => expect(sent("DELETE", /^\/admin\/projects\/7$/)).toHaveLength(1));
-    expect(confirm).toHaveBeenCalledWith("Projekt wirklich löschen? Meilensteine werden mitgelöscht.");
+    await pressDelete(u, "Website-Relaunch");
+    expect(screen.getByText("Alle Meilensteine des Projekts werden mitgelöscht.")).toBeTruthy();
+    expect(sent("DELETE", /admin\/projects/)).toHaveLength(0); // nothing sent yet
   });
 
   it("SENDS NOTHING when the confirmation is declined", async () => {
     // The only guard in front of an irreversible, cascading delete.
-    confirmAnswer = false;
     const u = await open([PROJECT]);
-    await u.click(within(item("Website-Relaunch")).getByRole("button", { name: "Löschen" }));
+    await pressDelete(u, "Website-Relaunch");
+    await u.click(dialogButton(/Abbrechen/));
     expect(sent("DELETE", /admin\/projects/)).toHaveLength(0);
     expect(sent("GET", /^\/admin\/projects$/)).toHaveLength(1);
   });
 
   it("deletes the project whose button was pressed", async () => {
     const u = await open([PROJECT, { ...PROJECT, id: 9, title: "Shop", milestones: [] }]);
-    await u.click(within(item("Shop")).getByRole("button", { name: "Löschen" }));
+    await pressDelete(u, "Shop");
+    await u.click(dialogButton(/Löschen/));
     await waitFor(() => expect(sent("DELETE", /^\/admin\/projects\/9$/)).toHaveLength(1));
     expect(sent("DELETE", /^\/admin\/projects\/7$/)).toHaveLength(0);
   });
 
   it("reloads the list afterwards", async () => {
     const u = await open([PROJECT]);
-    await u.click(within(item("Website-Relaunch")).getByRole("button", { name: "Löschen" }));
+    await pressDelete(u, "Website-Relaunch");
+    await u.click(dialogButton(/Löschen/));
     await waitFor(() => expect(sent("GET", /^\/admin\/projects$/)).toHaveLength(2));
+  });
+
+  it("reports a rejected delete instead of just closing the dialog", async () => {
+    // The response used to be discarded: a 403 closed the dialog, reloaded the
+    // list, and the row simply reappeared with no explanation.
+    respond(/^\/admin\/projects\/7$/, {}, 403, "DELETE");
+    const u = await open([PROJECT]);
+    await pressDelete(u, "Website-Relaunch");
+    await u.click(dialogButton(/Löschen/));
+    await waitFor(() => expect(toasts.length).toBe(1));
+    expect(toasts[0]!.variant).toBe("danger");
+    expect(toasts[0]!.message).toContain("403");
   });
 });
 
@@ -530,6 +569,10 @@ describe("milestones", () => {
       .getAllByRole("listitem")
       .find((li) => li.parentElement?.tagName === "OL" && li.textContent!.includes("Abnahme"))!;
     await u.click(within(second).getByRole("button", { name: "Meilenstein löschen" }));
+    // The × is gated by the same <ConfirmDialog> as the project delete — it is
+    // exactly the control a misclick lands on — so the request only leaves
+    // after the dialog is confirmed.
+    await u.click(screen.getAllByRole("button", { name: /Löschen/ }).at(-1)!);
     await waitFor(() => expect(sent("DELETE", /^\/admin\/milestones\/12$/)).toHaveLength(1));
     expect(sent("DELETE", /^\/admin\/milestones\/11$/)).toHaveLength(0);
   });
@@ -537,6 +580,7 @@ describe("milestones", () => {
   it("reloads the list after deleting a milestone", async () => {
     const u = await open([PROJECT]);
     await u.click(screen.getByRole("button", { name: "Meilenstein löschen" }));
+    await u.click(screen.getAllByRole("button", { name: /Löschen/ }).at(-1)!);
     await waitFor(() => expect(sent("GET", /^\/admin\/projects$/)).toHaveLength(2));
   });
 });

@@ -23,6 +23,14 @@ full port — this extension follows the same shape.
 - **No customer/project FK** — those entities live in another domain (auth /
   customer management), so `customer_id`/`project_id` are loose unsigned refs;
   `customer_id` = the JWT active company id (nullable = admin all-company view).
+- **Mutations report their outcome via `toast` (tds-shared `>=0.16.0`).** All four
+  admin mutations — delete project, add/cycle/delete milestone — used to ignore
+  their response, so a 403 looked exactly like success: the dialog closed, the
+  draft cleared, the list reloaded, and the row was simply still there. The
+  milestone draft is now only cleared once the POST succeeded. `error` state
+  stays reserved for the LOAD failure (a persistent state that replaces the
+  list); transient outcomes are toasts. Never mount a `ToastHost` here — the
+  frontend host owns the only one.
 - **Migration class name AND numeric prefix are extension-unique** (shared phinxlog
   across all composed extensions): `CreateProjectsMessage`, `20260722000001`.
 - **Depends on the published contract** VCS-only (Composer `type:vcs`), npm `^1.0.0`

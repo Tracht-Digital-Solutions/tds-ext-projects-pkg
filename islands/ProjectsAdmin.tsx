@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ConfirmDialog, Spinner } from "@tracht-digital-solutions/tds-shared/components";
+import { ConfirmDialog, Spinner, toast } from "@tracht-digital-solutions/tds-shared/components";
 
 interface Milestone {
   id: number;
@@ -80,11 +80,16 @@ export default function ProjectsAdmin() {
       const path = editingId ? `/admin/projects/${editingId}` : "/admin/projects";
       const r = await api(path, { method: editingId ? "PATCH" : "POST", body: JSON.stringify({ ...form, customer_id: Number(form.customer_id) }) });
       if (!r.ok) throw new Error(String(r.status));
+      const wasEditing = editingId !== null;
       setForm(emptyProject());
       setEditingId(null);
       await load();
-    } catch {
-      setError("Speichern fehlgeschlagen.");
+      toast.success(wasEditing ? "Projekt gespeichert." : "Projekt angelegt.");
+    } catch (e) {
+      // `error` stays reserved for the LOAD failure (a persistent state that
+      // replaces the whole list); a failed save is transient and belongs in a
+      // toast, next to the form the user is still looking at.
+      toast.danger(`Speichern fehlgeschlagen (HTTP ${e instanceof Error ? e.message : "?"}).`);
     } finally {
       setBusy(false);
     }
@@ -103,14 +108,22 @@ export default function ProjectsAdmin() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  // The four mutations below used to ignore their responses completely, so a
+  // 403 or a 500 looked exactly like success: the dialog closed, the draft
+  // cleared, the list reloaded — and the row was simply still there.
   async function confirmDeleteProject() {
     const p = pendingDelete;
     if (!p) return;
     setDeleting(true);
     try {
-      await api(`/admin/projects/${p.id}`, { method: "DELETE" });
+      const r = await api(`/admin/projects/${p.id}`, { method: "DELETE" });
       setPendingDelete(null);
       await load();
+      if (r.ok) toast.success(`„${p.title}" gelöscht.`);
+      else toast.danger(`Löschen fehlgeschlagen (HTTP ${r.status}).`);
+    } catch {
+      setPendingDelete(null);
+      toast.danger("Löschen fehlgeschlagen — die API ist nicht erreichbar.");
     } finally {
       setDeleting(false);
     }
@@ -119,15 +132,35 @@ export default function ProjectsAdmin() {
   async function addMilestone(projectId: number) {
     const title = (msDraft[projectId] ?? "").trim();
     if (!title) return;
-    await api(`/admin/projects/${projectId}/milestones`, { method: "POST", body: JSON.stringify({ title }) });
-    setMsDraft((d) => ({ ...d, [projectId]: "" }));
-    await load();
+    try {
+      const r = await api(`/admin/projects/${projectId}/milestones`, { method: "POST", body: JSON.stringify({ title }) });
+      if (r.ok) {
+        // Only clear the draft once it is actually stored — otherwise a failed
+        // add silently eats what the user typed.
+        setMsDraft((d) => ({ ...d, [projectId]: "" }));
+        toast.success("Meilenstein hinzugefügt.");
+      } else {
+        toast.danger(`Meilenstein konnte nicht angelegt werden (HTTP ${r.status}).`);
+      }
+    } catch {
+      toast.danger("Meilenstein konnte nicht angelegt werden — die API ist nicht erreichbar.");
+    } finally {
+      await load();
+    }
   }
 
   async function cycleMilestone(m: Milestone) {
     const next = M_STATUS[(M_STATUS.indexOf(m.status) + 1) % M_STATUS.length];
-    await api(`/admin/milestones/${m.id}`, { method: "PATCH", body: JSON.stringify({ title: m.title, status: next, due_date: m.due_date }) });
-    await load();
+    try {
+      const r = await api(`/admin/milestones/${m.id}`, { method: "PATCH", body: JSON.stringify({ title: m.title, status: next, due_date: m.due_date }) });
+      // Success is silent on purpose: the status chip itself changes after the
+      // reload, so a toast would only repeat what the user can already see.
+      if (!r.ok) toast.danger(`Status konnte nicht geändert werden (HTTP ${r.status}).`);
+    } catch {
+      toast.danger("Status konnte nicht geändert werden — die API ist nicht erreichbar.");
+    } finally {
+      await load();
+    }
   }
 
   // The trigger is a bare „×" beside the milestone title — precisely the control
@@ -137,9 +170,14 @@ export default function ProjectsAdmin() {
     if (!m) return;
     setDeleting(true);
     try {
-      await api(`/admin/milestones/${m.id}`, { method: "DELETE" });
+      const r = await api(`/admin/milestones/${m.id}`, { method: "DELETE" });
       setPendingMilestone(null);
       await load();
+      if (r.ok) toast.success("Meilenstein gelöscht.");
+      else toast.danger(`Löschen fehlgeschlagen (HTTP ${r.status}).`);
+    } catch {
+      setPendingMilestone(null);
+      toast.danger("Löschen fehlgeschlagen — die API ist nicht erreichbar.");
     } finally {
       setDeleting(false);
     }
