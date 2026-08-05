@@ -72,7 +72,7 @@ export default function ProjectsAdmin() {
     void load();
   }, []);
 
-  async function saveProject(e: React.FormEvent) {
+  async function saveProject(e: React.SubmitEvent) {
     e.preventDefault();
     if (!form.title.trim() || (!editingId && !String(form.customer_id).trim())) return;
     setBusy(true);
