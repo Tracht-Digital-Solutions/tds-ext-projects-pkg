@@ -192,7 +192,10 @@ export default function ProjectsAdmin() {
 
       <form className="tds-stack tds-card" onSubmit={saveProject}>
         <h3>{editingId ? `Projekt #${editingId} bearbeiten` : "Neues Projekt"}</h3>
-        <div className="grid">
+        {/* A bare `grid` is one implicit column, so these five fields stacked
+            at every width — right on a phone, wasteful on a desktop. The
+            `sm:` prefix is what keeps the phone behaviour unchanged. */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <label className="tds-field-row">Titel<input className="field-boxed" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} maxLength={200} required /></label>
           <label className="tds-field-row">Kunde (customer_id)<input className="field-boxed" type="number" value={form.customer_id} onChange={(e) => setForm({ ...form, customer_id: e.target.value })} disabled={editingId !== null} required={!editingId} /></label>
           <label className="tds-field-row">Status
@@ -216,13 +219,20 @@ export default function ProjectsAdmin() {
         <ul className="tds-list">
           {projects.map((p) => (
             <li key={p.id} className="tds-card">
-              <header>
+              {/* `.tds-row tds-row--between` — a bare <header> is display:block,
+                  so the title, chip, customer and both buttons reflowed as
+                  inline text and `.spacer` (a class nothing defines) pushed
+                  nothing anywhere. The shared row wraps, so the buttons drop
+                  to their own line on a phone instead of running into the
+                  title. */}
+              <header className="tds-row tds-row--between">
                 <strong>{p.title}</strong>
                 <span className={`chip ${P_CHIP[p.status] ?? "chip--neutral"}`}>{P_LABEL[p.status] ?? p.status}</span>
                 <span className="marginalia">Kunde #{p.customer_id}</span>
-                <span className="spacer" />
-                <button type="button" className="btn btn-ghost" onClick={() => editProject(p)}>Bearbeiten</button>
-                <button type="button" className="btn btn-danger" onClick={() => setPendingDelete(p)}>Löschen</button>
+                <span className="tds-toolbar">
+                  <button type="button" className="btn btn-ghost" onClick={() => editProject(p)}>Bearbeiten</button>
+                  <button type="button" className="btn btn-danger" onClick={() => setPendingDelete(p)}>Löschen</button>
+                </span>
               </header>
               <div className="tds-stack">
                 <ol>
