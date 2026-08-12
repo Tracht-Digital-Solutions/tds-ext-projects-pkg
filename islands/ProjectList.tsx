@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Spinner } from "@tracht-digital-solutions/tds-shared/components";
+import { apiFetch } from "@tracht-digital-solutions/tds-shared/api";
 
 interface Project {
   id: number;
@@ -49,7 +50,7 @@ const M_STATUS_CHIP: Record<string, string> = {
   completed: "chip--success",
 };
 
-const api = (path: string, init?: RequestInit) => fetch(path, { credentials: "include", ...init });
+const api = apiFetch;
 const fmtDate = (iso: string | null) =>
   iso ? new Date(iso).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
 

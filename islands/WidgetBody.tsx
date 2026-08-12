@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Skeleton } from "@tracht-digital-solutions/tds-shared/components";
+import { apiFetch } from "@tracht-digital-solutions/tds-shared/api";
 
 /**
  * "Aktive Projekte" widget body. Fetches the active-project count from the
@@ -9,7 +10,7 @@ export default function ActiveProjectsCount() {
   const [active, setActive] = useState<number | null>(null);
   useEffect(() => {
     let alive = true;
-    fetch("/projects/summary", { credentials: "include" })
+    apiFetch("/projects/summary")
       .then((r) => (r.ok ? r.json() : { active: 0 }))
       .then((d) => alive && setActive(Number(d.active ?? 0)))
       .catch(() => alive && setActive(0));

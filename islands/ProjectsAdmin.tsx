@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ConfirmDialog, Spinner, toast } from "@tracht-digital-solutions/tds-shared/components";
+import { apiFetch } from "@tracht-digital-solutions/tds-shared/api";
 
 interface Milestone {
   id: number;
@@ -41,7 +42,7 @@ const M_CHIP: Record<string, string> = {
 };
 
 const api = (path: string, init?: RequestInit) =>
-  fetch(path, { credentials: "include", headers: { "Content-Type": "application/json" }, ...init });
+  apiFetch(path, { headers: { "Content-Type": "application/json" }, ...init });
 
 const emptyProject = () => ({ title: "", customer_id: "", status: "discovery", start_date: "", target_date: "", description: "" });
 
