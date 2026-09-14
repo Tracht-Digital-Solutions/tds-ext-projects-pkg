@@ -192,7 +192,8 @@ export default function ProjectsAdmin() {
       {error && <p className="tds-alert tds-alert--danger" role="alert">{error}</p>}
 
       <form className="tds-stack tds-card" onSubmit={saveProject}>
-        <h3>{editingId ? `Projekt #${editingId} bearbeiten` : "Neues Projekt"}</h3>
+        {/* h2: the page's h1 is "Projekte verwalten", and nothing sits between. */}
+        <h2>{editingId ? `Projekt #${editingId} bearbeiten` : "Neues Projekt"}</h2>
         {/* A bare `grid` is one implicit column, so these five fields stacked
             at every width — right on a phone, wasteful on a desktop. The
             `sm:` prefix is what keeps the phone behaviour unchanged. */}
