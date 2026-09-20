@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { Spinner } from "@tracht-digital-solutions/tds-shared/components";
 import { apiFetch } from "@tracht-digital-solutions/tds-shared/api";
+import {
+  AnimatedItem,
+  AnimatedList,
+  Collapse,
+} from "@tracht-digital-solutions/tds-shared/motion/react";
 
 interface Project {
   id: number;
@@ -110,14 +115,14 @@ export default function ProjectList() {
   // layer). Note: a JSX comment cannot go inside the .map() return position —
   // it is an expression, not JSX children.
   return (
-    <ul className="project-list">
+    <AnimatedList className="project-list">
       {projects.map((p) => (
-        <li key={p.id} className="tds-card">
+        <AnimatedItem key={p.id} className="tds-card">
           <button type="button" className="btn btn-ghost tds-row tds-row--between" onClick={() => toggle(p.id)} aria-expanded={openId === p.id}>
             <span className="project-card__title">{p.title}</span>
             <span className={`chip ${STATUS_CHIP[p.status] ?? "chip--neutral"}`}>{STATUS_LABEL[p.status] ?? p.status}</span>
           </button>
-          {openId === p.id && (
+          <Collapse open={openId === p.id}>
             <div className="tds-stack">
               {p.description && <p className="project-card__desc">{p.description}</p>}
               <dl className="project-card__dates">
@@ -130,20 +135,20 @@ export default function ProjectList() {
               ) : milestones.length === 0 ? (
                 <p className="marginalia">Keine Meilensteine.</p>
               ) : (
-                <ol className="tds-list">
+                <AnimatedList as="ol" className="tds-list">
                   {milestones.map((m) => (
-                    <li key={m.id} className="tds-list__row">
+                    <AnimatedItem key={m.id} className="tds-list__row">
                       <span className="milestone__title">{m.title}</span>
                       <span className={`chip ${M_STATUS_CHIP[m.status] ?? "chip--neutral"}`}>{M_STATUS_LABEL[m.status] ?? m.status}</span>
                       <time>{fmtDate(m.due_date)}</time>
-                    </li>
+                    </AnimatedItem>
                   ))}
-                </ol>
+                </AnimatedList>
               )}
             </div>
-          )}
-        </li>
+          </Collapse>
+        </AnimatedItem>
       ))}
-    </ul>
+    </AnimatedList>
   );
 }

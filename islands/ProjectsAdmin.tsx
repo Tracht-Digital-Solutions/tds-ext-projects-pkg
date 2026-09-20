@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { ConfirmDialog, Spinner, toast } from "@tracht-digital-solutions/tds-shared/components";
 import { apiFetch } from "@tracht-digital-solutions/tds-shared/api";
+import {
+  AnimatedItem,
+  AnimatedList,
+  Presence,
+} from "@tracht-digital-solutions/tds-shared/motion/react";
 
 interface Milestone {
   id: number;
@@ -191,6 +196,7 @@ export default function ProjectsAdmin() {
     <div className="tds-stack">
       {error && <p className="tds-alert tds-alert--danger" role="alert">{error}</p>}
 
+      <Presence view={editingId ?? "new"}>
       <form className="tds-stack tds-card" onSubmit={saveProject}>
         {/* h2: the page's h1 is "Projekte verwalten", and nothing sits between. */}
         <h2>{editingId ? `Projekt #${editingId} bearbeiten` : "Neues Projekt"}</h2>
@@ -214,13 +220,14 @@ export default function ProjectsAdmin() {
           {editingId && <button type="button" className="btn btn-ghost" onClick={() => { setEditingId(null); setForm(emptyProject()); }}>Abbrechen</button>}
         </div>
       </form>
+      </Presence>
 
       {projects.length === 0 ? (
         <p className="tds-empty">Noch keine Projekte.</p>
       ) : (
-        <ul className="tds-list">
+        <AnimatedList className="tds-list">
           {projects.map((p) => (
-            <li key={p.id} className="tds-card">
+            <AnimatedItem key={p.id} className="tds-card">
               {/* `.tds-row tds-row--between` — a bare <header> is display:block,
                   so the title, chip, customer and both buttons reflowed as
                   inline text and `.spacer` (a class nothing defines) pushed
@@ -237,15 +244,15 @@ export default function ProjectsAdmin() {
                 </span>
               </header>
               <div className="tds-stack">
-                <ol>
+                <AnimatedList as="ol">
                   {(p.milestones ?? []).map((m) => (
-                    <li key={m.id}>
+                    <AnimatedItem key={m.id}>
                       <button type="button" className={`chip ${M_CHIP[m.status] ?? "chip--neutral"}`} onClick={() => cycleMilestone(m)} title="Status wechseln">{M_LABEL[m.status]}</button>
                       <span>{m.title}</span>
                       <button type="button" className="btn btn-danger" onClick={() => setPendingMilestone(m)} aria-label="Meilenstein löschen">×</button>
-                    </li>
+                    </AnimatedItem>
                   ))}
-                </ol>
+                </AnimatedList>
                 <div className="tds-toolbar">
                   <input
                     className="field-boxed"
@@ -258,9 +265,9 @@ export default function ProjectsAdmin() {
                   <button type="button" className="btn btn-primary" onClick={() => addMilestone(p.id)} aria-label="Meilenstein hinzufügen">+</button>
                 </div>
               </div>
-            </li>
+            </AnimatedItem>
           ))}
-        </ul>
+        </AnimatedList>
       )}
 
       <ConfirmDialog

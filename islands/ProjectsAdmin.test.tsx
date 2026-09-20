@@ -380,7 +380,8 @@ describe("editing a project", () => {
     const u = await open([PROJECT]);
     await startEdit(u);
     await u.click(screen.getByRole("button", { name: "Abbrechen" }));
-    expect(screen.getByRole("heading", { name: "Neues Projekt" })).toBeTruthy();
+    // The form cross-fades between "edit" and "new" (tds-shared Presence).
+    expect(await screen.findByRole("heading", { name: "Neues Projekt" })).toBeTruthy();
     expect(field("Titel").value).toBe("");
     expect(sent("PATCH", /admin\/projects/)).toHaveLength(0);
   });

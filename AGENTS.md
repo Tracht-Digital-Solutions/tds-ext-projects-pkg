@@ -20,6 +20,14 @@ full port — this extension follows the same shape.
 
 ## Gotchas
 
+- **Motion kommt aus `tds-shared/motion/react` (peer `>=0.38.7`).** Eine
+  Projektkarte klappt per `Collapse` auf, und weil die Karten `AnimatedItem`
+  sind, ruecken die darunter mit statt zu springen; Meilensteine und die
+  Admin-Liste sind `AnimatedList`s, das Admin-Formular blendet zwischen
+  'Neues Projekt' und 'Projekt bearbeiten' ueber. Zugeklappte oder getauschte
+  Inhalte bleiben kurz im DOM (`aria-hidden` + `inert`) — Tests `findBy…` was
+  kommt und `waitFor` was geht.
+
 - **Call the API with `apiFetch` from `@tracht-digital-solutions/tds-shared/api`,
   never a relative `fetch`.** Every island used to define its own
   `const api = (path, init) => fetch(path, { credentials: "include", ...init })`

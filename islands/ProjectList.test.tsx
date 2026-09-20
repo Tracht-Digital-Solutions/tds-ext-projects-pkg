@@ -248,7 +248,9 @@ describe("opening a project", () => {
     await u.click(head);
     await screen.findByText("Konzept");
     await u.click(head);
-    expect(screen.queryByText("Konzept")).toBeNull();
+    // The card collapses (tds-shared Collapse): its content stays in the DOM,
+    // aria-hidden and inert, until the exit finishes.
+    await waitFor(() => expect(screen.queryByText("Konzept")).toBeNull());
     expect(head.getAttribute("aria-expanded")).toBe("false");
   });
 
