@@ -120,9 +120,29 @@ final class ProjectRepository
         return (int) $this->pdo->lastInsertId();
     }
 
-    /** @param array<string,mixed> $d */
+    /**
+     * PATCH semantics: a field the body leaves out keeps its value. A PATCH
+     * without `status` used to reset the project to `discovery`, and a missing
+     * id answered `true` (rowCount() >= 0 is always true).
+     *
+     * @param array<string,mixed> $d
+     * @throws \InvalidArgumentException on a malformed date
+     */
     public function update(int $id, array $d): bool
     {
+        $cur = $this->pdo->prepare('SELECT status, start_date, target_date, description FROM projects_project WHERE id = :id');
+        $cur->execute(['id' => $id]);
+        $row = $cur->fetch(PDO::FETCH_ASSOC);
+        if ($row === false) {
+            return false;
+        }
+        $d += [
+            'status' => $row['status'],
+            'start_date' => $row['start_date'],
+            'target_date' => $row['target_date'],
+            'description' => $row['description'],
+        ];
+
         $stmt = $this->pdo->prepare(
             'UPDATE projects_project SET title = :title, status = :status, start_date = :start, '
             . 'target_date = :target, description = :desc, updated_at = NOW() WHERE id = :id'
@@ -135,7 +155,7 @@ final class ProjectRepository
             'target' => self::nullDate($d['target_date'] ?? null),
             'desc' => (string) ($d['description'] ?? ''),
         ]);
-        return $stmt->rowCount() >= 0;
+        return true;
     }
 
     public function delete(int $id): bool
@@ -162,11 +182,25 @@ final class ProjectRepository
         return (int) $this->pdo->lastInsertId();
     }
 
-    /** @param array<string,mixed> $d */
+    /**
+     * PATCH semantics as in update(); `completed_at` keeps the moment the
+     * milestone was FIRST completed instead of moving to every later save.
+     *
+     * @param array<string,mixed> $d
+     * @throws \InvalidArgumentException on a malformed date
+     */
     public function updateMilestone(int $id, array $d): bool
     {
-        $status = self::normMilestoneStatus($d['status'] ?? 'pending');
-        $completed = $status === 'completed' ? 'NOW()' : 'NULL';
+        $cur = $this->pdo->prepare('SELECT status, due_date, sort_order FROM projects_milestone WHERE id = :id');
+        $cur->execute(['id' => $id]);
+        $row = $cur->fetch(PDO::FETCH_ASSOC);
+        if ($row === false) {
+            return false;
+        }
+        $d += ['status' => $row['status'], 'due_date' => $row['due_date'], 'sort_order' => $row['sort_order']];
+
+        $status = self::normMilestoneStatus($d['status']);
+        $completed = $status === 'completed' ? 'COALESCE(completed_at, NOW())' : 'NULL';
         $stmt = $this->pdo->prepare(
             "UPDATE projects_milestone SET title = :title, status = :status, due_date = :due, "
             . "sort_order = :sort, completed_at = $completed WHERE id = :id"
@@ -178,7 +212,7 @@ final class ProjectRepository
             'due' => self::nullDate($d['due_date'] ?? null),
             'sort' => (int) ($d['sort_order'] ?? 0),
         ]);
-        return $stmt->rowCount() >= 0;
+        return true;
     }
 
     public function deleteMilestone(int $id): bool
@@ -200,9 +234,17 @@ final class ProjectRepository
         return in_array($s, self::M_STATUSES, true) ? $s : 'pending';
     }
 
+    /** @throws \InvalidArgumentException — a bad date was a 500 from the column. */
     private static function nullDate(mixed $v): ?string
     {
         $v = trim((string) ($v ?? ''));
-        return $v === '' ? null : $v;
+        if ($v === '') {
+            return null;
+        }
+        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $v);
+        if ($date === false || $date->format('Y-m-d') !== $v) {
+            throw new \InvalidArgumentException('Dates must be YYYY-MM-DD');
+        }
+        return $v;
     }
 }

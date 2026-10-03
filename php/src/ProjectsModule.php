@@ -57,6 +57,12 @@ final class ProjectsModule extends AbstractModule implements ApiDocSource
             if (($deny = self::require($user, 'projects:read', $res)) !== null) {
                 return $deny;
             }
+            // A non-admin without an active company has no scope. null means
+            // "every company" to the repository, so the widget counted every
+            // tenant's rows.
+            if (!$user->isAdmin() && $user->activeCompanyId() === null) {
+                return self::json($res, ['active' => 0]);
+            }
             $cid = $user->activeCompanyId() !== null ? (int) $user->activeCompanyId() : null;
             return self::json($res, ['active' => $c->get(ProjectRepository::class)->activeCount($cid)]);
         });
@@ -105,7 +111,11 @@ final class ProjectsModule extends AbstractModule implements ApiDocSource
             if (!is_array($b) || trim((string) ($b['title'] ?? '')) === '' || !isset($b['customer_id'])) {
                 return self::json($res, ['error' => 'title and customer_id required'], 422);
             }
-            $id = $c->get(ProjectRepository::class)->create((int) $b['customer_id'], $b);
+            try {
+                $id = $c->get(ProjectRepository::class)->create((int) $b['customer_id'], $b);
+            } catch (\InvalidArgumentException $e) {
+                return self::json($res, ['error' => $e->getMessage()], 422);
+            }
             return self::json($res, ['id' => $id], 201);
         });
 
@@ -117,8 +127,12 @@ final class ProjectsModule extends AbstractModule implements ApiDocSource
             if (!is_array($b) || trim((string) ($b['title'] ?? '')) === '') {
                 return self::json($res, ['error' => 'title required'], 422);
             }
-            $c->get(ProjectRepository::class)->update((int) $args['id'], $b);
-            return self::json($res, ['id' => (int) $args['id']]);
+            try {
+                $ok = $c->get(ProjectRepository::class)->update((int) $args['id'], $b);
+            } catch (\InvalidArgumentException $e) {
+                return self::json($res, ['error' => $e->getMessage()], 422);
+            }
+            return $ok ? self::json($res, ['id' => (int) $args['id']]) : self::json($res, ['error' => 'Not found'], 404);
         });
 
         $app->delete('/admin/projects/{id:[0-9]+}', function (Request $req, Response $res, array $args) use ($c): Response {
@@ -137,7 +151,11 @@ final class ProjectsModule extends AbstractModule implements ApiDocSource
             if (!is_array($b) || trim((string) ($b['title'] ?? '')) === '') {
                 return self::json($res, ['error' => 'title required'], 422);
             }
-            $id = $c->get(ProjectRepository::class)->createMilestone((int) $args['id'], $b);
+            try {
+                $id = $c->get(ProjectRepository::class)->createMilestone((int) $args['id'], $b);
+            } catch (\InvalidArgumentException $e) {
+                return self::json($res, ['error' => $e->getMessage()], 422);
+            }
             return self::json($res, ['id' => $id], 201);
         });
 
@@ -149,8 +167,12 @@ final class ProjectsModule extends AbstractModule implements ApiDocSource
             if (!is_array($b) || trim((string) ($b['title'] ?? '')) === '') {
                 return self::json($res, ['error' => 'title required'], 422);
             }
-            $c->get(ProjectRepository::class)->updateMilestone((int) $args['id'], $b);
-            return self::json($res, ['id' => (int) $args['id']]);
+            try {
+                $ok = $c->get(ProjectRepository::class)->updateMilestone((int) $args['id'], $b);
+            } catch (\InvalidArgumentException $e) {
+                return self::json($res, ['error' => $e->getMessage()], 422);
+            }
+            return $ok ? self::json($res, ['id' => (int) $args['id']]) : self::json($res, ['error' => 'Not found'], 404);
         });
 
         $app->delete('/admin/milestones/{id:[0-9]+}', function (Request $req, Response $res, array $args) use ($c): Response {
