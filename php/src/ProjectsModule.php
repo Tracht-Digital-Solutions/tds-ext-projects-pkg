@@ -12,6 +12,7 @@ use Tds\Frontend\Contract\AbstractModule;
 use Tds\Frontend\Contract\ApiDocSource;
 use Tds\Frontend\Contract\PermissionDef;
 use Tds\Frontend\Contract\UserContext;
+use Tds\Frontend\Contract\ModuleHttp;
 
 /**
  * Backend Module for the project + milestone directory, ported from
@@ -24,6 +25,8 @@ use Tds\Frontend\Contract\UserContext;
  */
 final class ProjectsModule extends AbstractModule implements ApiDocSource
 {
+    use ModuleHttp;
+
     public function id(): string
     {
         return 'projects';
@@ -182,34 +185,6 @@ final class ProjectsModule extends AbstractModule implements ApiDocSource
             $ok = $c->get(ProjectRepository::class)->deleteMilestone((int) $args['id']);
             return $ok ? self::json($res, ['deleted' => true]) : self::json($res, ['error' => 'Not found'], 404);
         });
-    }
-
-    private static function require(UserContext $user, string $permission, Response $res): ?Response
-    {
-        if (!$user->isAuthenticated()) {
-            return self::json($res, ['error' => 'Unauthorized'], 401);
-        }
-        if (!$user->has($permission)) {
-            return self::json($res, ['error' => 'Forbidden'], 403);
-        }
-        return null;
-    }
-
-    private static function requireAdmin(UserContext $user, Response $res): ?Response
-    {
-        if (!$user->isAuthenticated()) {
-            return self::json($res, ['error' => 'Unauthorized'], 401);
-        }
-        if (!$user->isAdmin()) {
-            return self::json($res, ['error' => 'Forbidden'], 403);
-        }
-        return null;
-    }
-
-    private static function json(Response $res, mixed $data, int $status = 200): Response
-    {
-        $res->getBody()->write(json_encode($data, JSON_THROW_ON_ERROR));
-        return $res->withStatus($status)->withHeader('Content-Type', 'application/json');
     }
 
     /**
