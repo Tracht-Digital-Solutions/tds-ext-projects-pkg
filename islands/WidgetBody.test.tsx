@@ -15,9 +15,8 @@ import WidgetBody from "./WidgetBody";
 /**
  * The active-projects widget.
  *
- * NOTE — this one falls back to `0` on a failure, where the lexware, billing and
- * customers widgets render `—`. Pinned as-is; the divergence is recorded in
- * AGENTS.md rather than silently changed in a test-only pass.
+ * Rendered by tds-shared `SummaryMetric`: a failure is `—`, like every other
+ * widget, never a `0` that reads as "nothing to do".
  */
 
 let reply: { status: number; body: unknown } | "reject" = { status: 200, body: { active: 0 } };
@@ -97,14 +96,14 @@ describe("the widget", () => {
   it("does not render a count carried by a NON-OK response", async () => {
     reply = { status: 403, body: { active: 99 } };
     render(<WidgetBody />);
-    expect(await screen.findByText("0")).toBeTruthy();
+    expect(await screen.findByText("—")).toBeTruthy();
     expect(screen.queryByText("99")).toBeNull();
   });
 
   it("still resolves to a rendered tile when the request rejects", async () => {
     reply = "reject";
     render(<WidgetBody />);
-    expect(await screen.findByText("0")).toBeTruthy();
+    expect(await screen.findByText("—")).toBeTruthy();
     expect(document.querySelector('[aria-busy="true"]')).toBeNull();
   });
 });

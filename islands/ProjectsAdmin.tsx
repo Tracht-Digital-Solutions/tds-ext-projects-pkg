@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { ConfirmDialog, Spinner, toast } from "@tracht-digital-solutions/tds-shared/components";
-import { apiFetch } from "@tracht-digital-solutions/tds-shared/api";
+import { Alert, ConfirmDialog, Spinner, StatusChip, toast } from "@tracht-digital-solutions/tds-shared/components";
+import { apiFetch, sendJson } from "@tracht-digital-solutions/tds-shared/api";
+import { resolveChipVariant } from "@tracht-digital-solutions/tds-shared/design";
+import { MILESTONE_STATUS, PROJECT_STATUS } from "./statuses";
 import {
   AnimatedItem,
   AnimatedList,
@@ -26,29 +28,6 @@ interface Project {
 
 const P_STATUS = ["discovery", "in_progress", "review", "delivered", "on_hold"] as const;
 const M_STATUS = ["pending", "in_progress", "completed"] as const;
-const P_LABEL: Record<string, string> = { discovery: "Analyse", in_progress: "In Arbeit", review: "Abnahme", delivered: "Abgeschlossen", on_hold: "Pausiert" };
-const M_LABEL: Record<string, string> = { pending: "Offen", in_progress: "In Arbeit", completed: "Erledigt" };
-
-// Status -> shared chip variant. Mapped EXPLICITLY rather than interpolated:
-// the old code wrote `badge badge--${status}`, and neither `.badge` nor any
-// `badge--*` rule exists anywhere, so every one of these labels rendered
-// unstyled. Tailwind also cannot extract an interpolated class name.
-const P_CHIP: Record<string, string> = {
-  discovery: "chip--info",
-  in_progress: "chip--warning",
-  review: "chip--cat-violet",
-  delivered: "chip--success",
-  on_hold: "chip--neutral",
-};
-const M_CHIP: Record<string, string> = {
-  pending: "chip--neutral",
-  in_progress: "chip--warning",
-  completed: "chip--success",
-};
-
-const api = (path: string, init?: RequestInit) =>
-  apiFetch(path, { headers: { "Content-Type": "application/json" }, ...init });
-
 const emptyProject = () => ({ title: "", customer_id: "", status: "discovery", start_date: "", target_date: "", description: "" });
 
 /**
@@ -69,7 +48,7 @@ export default function ProjectsAdmin() {
   const [deleting, setDeleting] = useState(false);
 
   const load = () =>
-    api("/admin/projects")
+    apiFetch("/admin/projects")
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((d) => setProjects(d.projects ?? []))
       .catch(() => setError("Projekte konnten nicht geladen werden."));
@@ -84,7 +63,7 @@ export default function ProjectsAdmin() {
     setBusy(true);
     try {
       const path = editingId ? `/admin/projects/${editingId}` : "/admin/projects";
-      const r = await api(path, { method: editingId ? "PATCH" : "POST", body: JSON.stringify({ ...form, customer_id: Number(form.customer_id) }) });
+      const r = await sendJson(path, editingId ? "PATCH" : "POST", { ...form, customer_id: Number(form.customer_id) });
       if (!r.ok) throw new Error(String(r.status));
       const wasEditing = editingId !== null;
       setForm(emptyProject());
@@ -122,7 +101,7 @@ export default function ProjectsAdmin() {
     if (!p) return;
     setDeleting(true);
     try {
-      const r = await api(`/admin/projects/${p.id}`, { method: "DELETE" });
+      const r = await apiFetch(`/admin/projects/${p.id}`, { method: "DELETE" });
       setPendingDelete(null);
       await load();
       if (r.ok) toast.success(`„${p.title}" gelöscht.`);
@@ -139,7 +118,7 @@ export default function ProjectsAdmin() {
     const title = (msDraft[projectId] ?? "").trim();
     if (!title) return;
     try {
-      const r = await api(`/admin/projects/${projectId}/milestones`, { method: "POST", body: JSON.stringify({ title }) });
+      const r = await sendJson(`/admin/projects/${projectId}/milestones`, "POST", { title });
       if (r.ok) {
         // Only clear the draft once it is actually stored — otherwise a failed
         // add silently eats what the user typed.
@@ -158,7 +137,7 @@ export default function ProjectsAdmin() {
   async function cycleMilestone(m: Milestone) {
     const next = M_STATUS[(M_STATUS.indexOf(m.status) + 1) % M_STATUS.length];
     try {
-      const r = await api(`/admin/milestones/${m.id}`, { method: "PATCH", body: JSON.stringify({ title: m.title, status: next, due_date: m.due_date }) });
+      const r = await sendJson(`/admin/milestones/${m.id}`, "PATCH", { title: m.title, status: next, due_date: m.due_date });
       // Success is silent on purpose: the status chip itself changes after the
       // reload, so a toast would only repeat what the user can already see.
       if (!r.ok) toast.danger(`Status konnte nicht geändert werden (HTTP ${r.status}).`);
@@ -176,7 +155,7 @@ export default function ProjectsAdmin() {
     if (!m) return;
     setDeleting(true);
     try {
-      const r = await api(`/admin/milestones/${m.id}`, { method: "DELETE" });
+      const r = await apiFetch(`/admin/milestones/${m.id}`, { method: "DELETE" });
       setPendingMilestone(null);
       await load();
       if (r.ok) toast.success("Meilenstein gelöscht.");
@@ -189,12 +168,12 @@ export default function ProjectsAdmin() {
     }
   }
 
-  if (error && projects === null) return <p className="tds-alert tds-alert--danger" role="alert">{error}</p>;
+  if (error && projects === null) return <Alert>{error}</Alert>;
   if (projects === null) return <p><Spinner /></p>;
 
   return (
     <div className="tds-stack">
-      {error && <p className="tds-alert tds-alert--danger" role="alert">{error}</p>}
+      <Alert>{error}</Alert>
 
       <Presence view={editingId ?? "new"}>
       <form className="tds-stack tds-card" onSubmit={saveProject}>
@@ -208,7 +187,7 @@ export default function ProjectsAdmin() {
           <label className="tds-field-row">Kunde (customer_id)<input className="field-boxed" type="number" value={form.customer_id} onChange={(e) => setForm({ ...form, customer_id: e.target.value })} disabled={editingId !== null} required={!editingId} /></label>
           <label className="tds-field-row">Status
             <select className="field-boxed" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-              {P_STATUS.map((s) => <option key={s} value={s}>{P_LABEL[s]}</option>)}
+              {P_STATUS.map((s) => <option key={s} value={s}>{PROJECT_STATUS[s]!.label}</option>)}
             </select>
           </label>
           <label className="tds-field-row">Start<input className="field-boxed" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></label>
@@ -236,7 +215,7 @@ export default function ProjectsAdmin() {
                   title. */}
               <header className="tds-row tds-row--between">
                 <strong>{p.title}</strong>
-                <span className={`chip ${P_CHIP[p.status] ?? "chip--neutral"}`}>{P_LABEL[p.status] ?? p.status}</span>
+                <StatusChip status={p.status} map={PROJECT_STATUS} />
                 <span className="marginalia">Kunde #{p.customer_id}</span>
                 <span className="tds-toolbar">
                   <button type="button" className="btn btn-ghost" onClick={() => editProject(p)}>Bearbeiten</button>
@@ -247,7 +226,7 @@ export default function ProjectsAdmin() {
                 <AnimatedList as="ol">
                   {(p.milestones ?? []).map((m) => (
                     <AnimatedItem key={m.id}>
-                      <button type="button" className={`chip ${M_CHIP[m.status] ?? "chip--neutral"}`} onClick={() => cycleMilestone(m)} title="Status wechseln">{M_LABEL[m.status]}</button>
+                      <button type="button" className={`chip ${resolveChipVariant(MILESTONE_STATUS[m.status]?.tone)}`} onClick={() => cycleMilestone(m)} title="Status wechseln">{MILESTONE_STATUS[m.status]?.label ?? m.status}</button>
                       <span>{m.title}</span>
                       <button type="button" className="btn btn-danger" onClick={() => setPendingMilestone(m)} aria-label="Meilenstein löschen">×</button>
                     </AnimatedItem>

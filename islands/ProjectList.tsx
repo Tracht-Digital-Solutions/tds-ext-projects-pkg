@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { Spinner } from "@tracht-digital-solutions/tds-shared/components";
+import { Alert, Spinner, StatusChip } from "@tracht-digital-solutions/tds-shared/components";
+import { formatDate } from "@tracht-digital-solutions/tds-shared/format";
+import { MILESTONE_STATUS, PROJECT_STATUS } from "./statuses";
 import { apiFetch } from "@tracht-digital-solutions/tds-shared/api";
 import {
   AnimatedItem,
@@ -25,39 +27,6 @@ interface Milestone {
   sort_order: number;
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  discovery: "Analyse",
-  in_progress: "In Arbeit",
-  review: "Abnahme",
-  delivered: "Abgeschlossen",
-  on_hold: "Pausiert",
-};
-const M_STATUS_LABEL: Record<string, string> = {
-  pending: "Offen",
-  in_progress: "In Arbeit",
-  completed: "Erledigt",
-};
-
-// Status -> shared chip variant. Mapped EXPLICITLY, not interpolated: the old
-// code wrote `badge badge--${status}`, and neither `.badge` nor any `badge--*`
-// rule exists anywhere, so every status label rendered unstyled. Kept in sync
-// with the identical maps in ProjectsAdmin.tsx.
-const STATUS_CHIP: Record<string, string> = {
-  discovery: "chip--info",
-  in_progress: "chip--warning",
-  review: "chip--cat-violet",
-  delivered: "chip--success",
-  on_hold: "chip--neutral",
-};
-const M_STATUS_CHIP: Record<string, string> = {
-  pending: "chip--neutral",
-  in_progress: "chip--warning",
-  completed: "chip--success",
-};
-
-const api = apiFetch;
-const fmtDate = (iso: string | null) =>
-  iso ? new Date(iso).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
 
 /**
  * Portal project directory (ported from tds-customer-legacy-frontend's project
@@ -73,7 +42,7 @@ export default function ProjectList() {
   const [loadingDetail, setLoadingDetail] = useState(false);
 
   useEffect(() => {
-    api("/projects")
+    apiFetch("/projects")
       .then((r) => {
         if (r.status === 403) {
           setForbidden(true);
@@ -94,7 +63,7 @@ export default function ProjectList() {
     setOpenId(id);
     setLoadingDetail(true);
     try {
-      const r = await api(`/projects/${id}`);
+      const r = await apiFetch(`/projects/${id}`);
       const d = r.ok ? await r.json() : { milestones: [] };
       setMilestones(d.milestones ?? []);
     } catch {
@@ -105,7 +74,7 @@ export default function ProjectList() {
   }
 
   if (forbidden) return <p className="marginalia">Kein Zugriff auf Projekte.</p>;
-  if (error && projects === null) return <p className="tds-alert tds-alert--danger" role="alert">{error}</p>;
+  if (error && projects === null) return <Alert>{error}</Alert>;
   if (projects === null) return <p><Spinner /></p>;
   if (projects.length === 0) return <p className="marginalia">Noch keine Projekte.</p>;
 
@@ -120,14 +89,14 @@ export default function ProjectList() {
         <AnimatedItem key={p.id} className="tds-card">
           <button type="button" className="btn btn-ghost tds-row tds-row--between" onClick={() => toggle(p.id)} aria-expanded={openId === p.id}>
             <span className="project-card__title">{p.title}</span>
-            <span className={`chip ${STATUS_CHIP[p.status] ?? "chip--neutral"}`}>{STATUS_LABEL[p.status] ?? p.status}</span>
+            <StatusChip status={p.status} map={PROJECT_STATUS} />
           </button>
           <Collapse open={openId === p.id}>
             <div className="tds-stack">
               {p.description && <p className="project-card__desc">{p.description}</p>}
               <dl className="project-card__dates">
-                <div><dt>Start</dt><dd>{fmtDate(p.start_date)}</dd></div>
-                <div><dt>Ziel</dt><dd>{fmtDate(p.target_date)}</dd></div>
+                <div><dt>Start</dt><dd>{formatDate(p.start_date)}</dd></div>
+                <div><dt>Ziel</dt><dd>{formatDate(p.target_date)}</dd></div>
               </dl>
               <h4>Meilensteine</h4>
               {loadingDetail ? (
@@ -139,8 +108,8 @@ export default function ProjectList() {
                   {milestones.map((m) => (
                     <AnimatedItem key={m.id} className="tds-list__row">
                       <span className="milestone__title">{m.title}</span>
-                      <span className={`chip ${M_STATUS_CHIP[m.status] ?? "chip--neutral"}`}>{M_STATUS_LABEL[m.status] ?? m.status}</span>
-                      <time>{fmtDate(m.due_date)}</time>
+                      <StatusChip status={m.status} map={MILESTONE_STATUS} />
+                      <time>{formatDate(m.due_date)}</time>
                     </AnimatedItem>
                   ))}
                 </AnimatedList>
